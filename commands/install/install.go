@@ -1,12 +1,13 @@
 package install
 
 import (
-	"github.com/gogf/gf-cli/library/mlog"
+	"runtime"
+
 	"github.com/gogf/gf/os/genv"
 	"github.com/gogf/gf/os/gfile"
 	"github.com/gogf/gf/os/gproc"
 	"github.com/gogf/gf/text/gstr"
-	"runtime"
+	"r2game.com/gf-cli/library/mlog"
 )
 
 // Run does the installation.

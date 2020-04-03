@@ -1,15 +1,16 @@
 package initialize
 
 import (
-	"github.com/gogf/gf-cli/library/allyes"
-	"github.com/gogf/gf-cli/library/mlog"
+	"strings"
+
 	"github.com/gogf/gf/encoding/gcompress"
 	"github.com/gogf/gf/frame/g"
 	"github.com/gogf/gf/net/ghttp"
 	"github.com/gogf/gf/os/gcmd"
 	"github.com/gogf/gf/os/gfile"
 	"github.com/gogf/gf/text/gstr"
-	"strings"
+	"r2game.com/gf-cli/library/allyes"
+	"r2game.com/gf-cli/library/mlog"
 )
 
 const (

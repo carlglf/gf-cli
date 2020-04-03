@@ -3,7 +3,7 @@ package swagger
 import (
 	"errors"
 	"fmt"
-	"github.com/gogf/gf-cli/library/mlog"
+
 	"github.com/gogf/gf-swagger/swagger"
 	"github.com/gogf/gf/container/gtype"
 	"github.com/gogf/gf/frame/g"
@@ -14,6 +14,7 @@ import (
 	"github.com/gogf/gf/os/gtime"
 	"github.com/gogf/gf/os/gtimer"
 	"github.com/gogf/gf/text/gstr"
+	"r2game.com/gf-cli/library/mlog"
 )
 
 const (

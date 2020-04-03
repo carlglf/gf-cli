@@ -3,8 +3,10 @@ package build
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gogf/gf-cli/library/mlog"
-	"github.com/gogf/gf-cli/library/proxy"
+	"regexp"
+	"runtime"
+	"strings"
+
 	"github.com/gogf/gf/encoding/gbase64"
 	"github.com/gogf/gf/frame/g"
 	"github.com/gogf/gf/os/gcmd"
@@ -16,9 +18,8 @@ import (
 	"github.com/gogf/gf/text/gstr"
 	"github.com/gogf/gf/util/gconv"
 	"github.com/gogf/gf/util/gutil"
-	"regexp"
-	"runtime"
-	"strings"
+	"r2game.com/gf-cli/library/mlog"
+	"r2game.com/gf-cli/library/proxy"
 )
 
 // https://golang.google.cn/doc/install/source

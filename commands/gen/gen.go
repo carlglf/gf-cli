@@ -1,10 +1,10 @@
 package gen
 
 import (
-	"github.com/gogf/gf-cli/library/mlog"
 	"github.com/gogf/gf/frame/g"
 	"github.com/gogf/gf/os/gcmd"
 	"github.com/gogf/gf/text/gstr"
+	"r2game.com/gf-cli/library/mlog"
 )
 
 func Help() {

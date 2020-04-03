@@ -1,4 +1,4 @@
-module github.com/gogf/gf-cli
+module r2game.com/gf-cli
 
 require (
 	github.com/denisenkom/go-mssqldb v0.0.0-20191001013358-cfbb681360f0

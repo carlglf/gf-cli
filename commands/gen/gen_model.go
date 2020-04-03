@@ -3,20 +3,19 @@ package gen
 import (
 	"bytes"
 	"fmt"
-	_ "github.com/denisenkom/go-mssqldb"
-	"github.com/gogf/gf-cli/library/allyes"
-	"github.com/gogf/gf-cli/library/mlog"
+	"strings"
+
+	"r2game.com/gf-cli/commands/gen/gensplit"
+
 	"github.com/gogf/gf/database/gdb"
 	"github.com/gogf/gf/frame/g"
 	"github.com/gogf/gf/os/gcmd"
 	"github.com/gogf/gf/os/gfile"
 	"github.com/gogf/gf/text/gregex"
 	"github.com/gogf/gf/text/gstr"
-	_ "github.com/lib/pq"
-	//_ "github.com/mattn/go-oci8"
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/olekukonko/tablewriter"
-	"strings"
+	"r2game.com/gf-cli/library/allyes"
+	"r2game.com/gf-cli/library/mlog"
 )
 
 const (
@@ -38,6 +37,8 @@ func doGenModel(parser *gcmd.Parser) {
 	configFile := parser.GetOpt("config")
 	configGroup := parser.GetOpt("group", gdb.DEFAULT_GROUP_NAME)
 	prefixArray := gstr.SplitAndTrim(parser.GetOpt("prefix"), ",")
+
+	genPath = genPath + "/" + configGroup
 
 	if linkInfo != "" {
 		path := gfile.TempDir() + gfile.Separator + "config.toml"
@@ -99,11 +100,47 @@ func doGenModel(parser *gcmd.Parser) {
 // file_entity.go : the entity definition go file, it can be overwrote by gf-cli tool, don't edit it;
 // file_model.go  : the active record design model definition go file, it can be overwrote by gf-cli tool, don't edit it;
 func generateModelContentFile(db gdb.DB, table, variable, folderPath, groupName string) {
+	//get split config
+	replaceRet, e := gregex.Replace(`_\d+`, []byte(""), []byte(table))
+	splitTable := table
+	if e == nil {
+		splitTable = string(replaceRet)
+	}
+
+	upperTableNames := gstr.Explode("_", splitTable)
+	var upperTableName string
+	for _, upTableName := range upperTableNames {
+		upTableName = gstr.UcFirst(upTableName)
+		upperTableName += upTableName
+	}
+
+	splitVariable := variable
+	replaceRet, e = gregex.Replace(`_\d+`, []byte(""), []byte(variable))
+	if e == nil {
+		splitVariable = string(replaceRet)
+	}
+
+	fmt.Println(fmt.Sprintf("split.%s.%s.type", groupName, splitTable))
+	splitType := g.Cfg().GetString(fmt.Sprintf("split.%s.%s.type", groupName, splitTable))
+	var tplModel string
+	tplEntity := gensplit.TemplateEntityContent
+	var splitKey string
+	var splitNum string
+	var splitFormat string
+	if splitType != "" {
+		splitKey = g.Cfg().GetString(fmt.Sprintf("split.%s.%s.key", groupName, splitTable))
+		splitNum = g.Cfg().GetString(fmt.Sprintf("split.%s.%s.num", groupName, splitTable))
+		splitFormat = g.Cfg().GetString(fmt.Sprintf("split.%s.%s.format", groupName, splitTable))
+
+		tplModel = gensplit.TemplateModelContent
+	} else {
+		tplModel = templateModelContent
+	}
 	fieldMap, err := db.TableFields(table)
 	if err != nil {
 		mlog.Fatalf("fetching tables fields failed for table '%s':\n%v", table, err)
 	}
-	camelName := gstr.CamelCase(variable)
+	camelName := gstr.CamelCase(splitVariable)
 	structDefine := generateStructDefinition(fieldMap)
 	packageImports := ""
 	if strings.Contains(structDefine, "gtime.Time") {
@@ -117,10 +154,10 @@ import (
 		packageImports = gstr.Trim(`
 import (
 	"database/sql"
-	"github.com/gogf/gf/database/gdb"
+	"github.com/gogf/gf/database/gdb"	
 )`)
 	}
-	packageName := gstr.SnakeCase(variable)
+	packageName := gstr.SnakeCase(splitVariable)
 	fileName := gstr.Trim(packageName, "-_.")
 	if len(fileName) > 5 && fileName[len(fileName)-5:] == "_test" {
 		// Add suffix to avoid the table name which contains "_test",
@@ -131,7 +168,7 @@ import (
 	path := gfile.Join(folderPath, packageName, fileName+".go")
 	if !gfile.Exists(path) {
 		indexContent := gstr.ReplaceByMap(templateIndexContent, g.MapStrStr{
-			"{TplTableName}":      table,
+			"{TplTableName}":      splitTable,
 			"{TplModelName}":      camelName,
 			"{TplGroupName}":      groupName,
 			"{TplPackageName}":    packageName,
@@ -146,13 +183,14 @@ import (
 	}
 	// entity
 	path = gfile.Join(folderPath, packageName, fileName+"_entity.go")
-	entityContent := gstr.ReplaceByMap(templateEntityContent, g.MapStrStr{
-		"{TplTableName}":      table,
+	entityContent := gstr.ReplaceByMap(tplEntity, g.MapStrStr{
+		"{TplTableName}":      splitTable,
 		"{TplModelName}":      camelName,
 		"{TplGroupName}":      groupName,
 		"{TplPackageName}":    packageName,
 		"{TplPackageImports}": packageImports,
 		"{TplStructDefine}":   structDefine,
+		"{TplUpperTableName}": upperTableName,
 	})
 	if err := gfile.PutContents(path, strings.TrimSpace(entityContent)); err != nil {
 		mlog.Fatalf("writing content to '%s' failed: %v", path, err)
@@ -161,8 +199,8 @@ import (
 	}
 	// model
 	path = gfile.Join(folderPath, packageName, fileName+"_model.go")
-	modelContent := gstr.ReplaceByMap(templateModelContent, g.MapStrStr{
-		"{TplTableName}":      table,
+	modelContent := gstr.ReplaceByMap(tplModel, g.MapStrStr{
+		"{TplTableName}":      splitTable,
 		"{TplModelName}":      camelName,
 		"{TplGroupName}":      groupName,
 		"{TplPackageName}":    packageName,
@@ -170,6 +208,10 @@ import (
 		"{TplStructDefine}":   structDefine,
 		"{TplColumnDefine}":   gstr.Trim(generateColumnDefinition(fieldMap)),
 		"{TplColumnNames}":    gstr.Trim(generateColumnNames(fieldMap)),
+		"{TplSplitKey}":       splitKey,
+		"{TplSplitType}":      splitType,
+		"{TplSplitNum}":       splitNum,
+		"{TplSplitFormat}":    splitFormat,
 	})
 	if err := gfile.PutContents(path, strings.TrimSpace(modelContent)); err != nil {
 		mlog.Fatalf("writing content to '%s' failed: %v", path, err)
@@ -255,7 +297,7 @@ func generateStructField(field *gdb.TableField) []string {
 		}
 	}
 	ormTag = field.Name
-	jsonTag = gstr.SnakeCase(field.Name)
+	jsonTag = gstr.CamelLowerCase(field.Name)
 	if gstr.ContainsI(field.Key, "pri") {
 		ormTag += ",primary"
 	}
